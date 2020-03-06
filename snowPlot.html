@@ -1,0 +1,436 @@
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script src="https://www.weather.gov/source/aprfc/js/moment.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.js"></script>
+<script src="https://rawgit.com/klazutin/highcharts-singleseries/master/singleseries.js"></script>
+<script>
+
+/**
+ * (c) 2010-2017 Torstein Honsi
+ *
+ * License: www.highcharts.com/license
+ *
+ * Grid-light theme for Highcharts JS
+ * @author Torstein Honsi
+ */
+/* global document */
+Highcharts.theme = {
+    colors: ['#058DC7', '#50B432', '#ED561B', '#DDDF00', '#24CBE5', '#64E572',
+        '#FF9655', '#FFF263', '#6AF9C4'],
+    chart: {
+
+        borderWidth: 0,
+        borderRadius: 10,
+        plotBackgroundColor: 'rgba(255, 255, 255, .9)',
+        plotShadow: true,
+        plotBorderWidth: 1
+    },
+    title: {
+        style: {
+            color: '#000',
+            font: 'bold 16px "Trebuchet MS", Verdana, sans-serif'
+        }
+    },
+    subtitle: {
+        style: {
+            color: '#666666',
+            font: 'bold 12px "Trebuchet MS", Verdana, sans-serif'
+        }
+    },
+    xAxis: {
+        gridLineWidth: 1,
+        lineColor: '#000',
+        tickColor: '#000',
+        labels: {
+            style: {
+                color: '#000',
+                font: '16px Trebuchet MS, Verdana, sans-serif'
+            }
+        },
+    },
+    yAxis: {
+        minorTickInterval: 'auto',
+        lineColor: '#000',
+        lineWidth: 1,
+        tickWidth: 1,
+        tickColor: '#000',
+        labels: {
+            style: {
+                color: '#000',
+                font: '11px Trebuchet MS, Verdana, sans-serif'
+            }
+        },
+        title: {
+            style: {
+                color: '#333',
+                fontWeight: 'bold',
+                fontSize: '16px',
+                fontFamily: 'Trebuchet MS, Verdana, sans-serif'
+            }
+        }
+    },
+    legend: {
+        itemStyle: {
+            font: '9pt Trebuchet MS, Verdana, sans-serif',
+            color: 'black'
+
+        },
+        itemHoverStyle: {
+            color: '#039'
+        },
+        itemHiddenStyle: {
+            color: 'gray'
+        }
+    },
+    labels: {
+        style: {
+            color: '#99b'
+        }
+    },
+
+    navigation: {
+        buttonOptions: {
+            theme: {
+                stroke: '#CCCCCC'
+            }
+        }
+    }
+};
+
+// Apply the theme
+Highcharts.setOptions(Highcharts.theme);
+
+var snowData = {};
+
+function getParameterByName(name, url) {
+        if (!url) url = window.location.href;
+        name = name.replace(/[\[\]]/g, "\\$&");
+        var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+            results = regex.exec(url);
+        if (!results) return null;
+        if (!results[2]) return '';
+        return decodeURIComponent(results[2].replace(/\+/g, " "));
+}
+
+
+function postResults(url, params) {
+    var xdr, args, results,
+    params_string = JSON.stringify(params);
+    args = {
+        params: params_string
+    };
+    $.ajax(url, {
+        type: 'POST',
+        data: args,
+        crossDamain: true,
+        success: postSuccess,
+        error: postError
+    });
+}
+
+//web services success callback
+function postSuccess(results) {
+    console.log(results);
+    //This will store the html string that will be inserted into
+    //the table id JSONACIS
+    var tableString = '<tr><th>Name</th><th>Station Start</th><th>Station End</th></tr>';
+
+    //Loop through the results and for each station
+    for (var key in results.meta) {
+        //add a new row.
+        tableString = tableString + '<tr><td><a href ="?site='+results.meta[key].sids[0]+'">' + results.meta[key].name +'</a></td><td>' + results.meta[key].valid_daterange[0][0] + '</td><td>' + results.meta[key].valid_daterange[0][1] + '</td></tr>';
+    }
+
+    //This call will inject the html string back into the page
+    //so that it can be seen.
+    $('#JSONACIS ').html(tableString);
+}
+
+//web services failure callback
+function postError(xhr, textStatus, error) {
+    $("#jresults").empty().html("<p>Web services call failed: " + error + "</p>");
+}
+
+
+
+function getSortedKeys(obj) {
+    var keys = []; for(var key in obj) keys.push(key);
+    return keys.sort(function(a,b){return obj[b]-obj[a]});
+}
+
+function getSnowData(station){
+    var nextYear = moment().add(4,'months').year()+1;
+
+    url = "https://data.rcc-acis.org/StnData";
+    $.ajax({
+      type: "POST",
+      async: false,
+      url: url,
+      data: {"params": '{"elems":[{"name":"snwd"}],"sid":"'+station+'","sDate":"1920-01-01","eDate":"'+nextYear+'-01-01"}',"output":'json'},
+        success: function (response) {
+            snowData = response;
+        },
+        error: function () {
+            alert("error");
+        }
+    });
+    return snowData;
+
+}
+
+function getMedian(values) {
+    values.sort( function(a,b) {return a - b;} );
+    var half = Math.floor(values.length/2);
+    if(values.length % 2)
+        return values[half];
+    else
+        return (values[half-1] + values[half]) / 2.0;
+}
+
+
+function data2Series(acisData){
+
+    var allSeries = [];
+    var currentYear = moment(acisData.data[0][0]).add(4,'months').year();
+    var thisYear = moment().add(4,'months').year();
+    var data = [];
+    var median = [];
+    var peaks = {};
+    for ( var i = 1800; i < 2100; i++ ) {
+        peaks[i] = 0;
+    }
+    for ( var i = 0; i < 366; i++ ) {
+        median[i] = [];
+    }
+    $.each( acisData.data, function( index,array ) {
+        if(moment(array[0]).add(4, 'months').year() > currentYear){
+            lineColor = 'rgba(200,200,200,0.3)';
+            if(currentYear == thisYear){
+                lineColor = 'red';
+            }
+            var series = {
+                'name' : String(currentYear-1)+'-'+String(currentYear),
+                'data' : data,
+                'id'   : currentYear,
+                'type' : 'line',
+                'order': 0,
+                'color': lineColor,
+                'origColor' : lineColor,
+                'max'  : peaks[currentYear],
+                }
+            if(peaks[currentYear] == 0 ) peaks[currentYear] =1;
+            if(data.length > 0) allSeries.push(series);
+            data = [];
+            currentYear = moment(array[0]).add(4, 'months').year();
+         }
+        if(array[1] == 'M') return;
+        var val;
+        if($.isNumeric(array[1])){
+            val =  parseInt(array[1])
+         }
+         else{
+            if(array[1] == 'T'){
+                val = 0;
+            }
+            else{
+              val = null;
+            }
+         }
+        if(moment().diff(array[0]) < 0){
+            val = null;
+        }
+        var year = '2000';
+        if(moment(array[0]).month()<8){
+            year = '2001';
+        }
+        median[moment(array[0]).diff(moment(String(currentYear-1)+'-09-01'),'days')].push(val);
+        data.push([parseInt(moment(array[0]).year(year).format('x')),val]);
+
+        if(val > peaks[currentYear])  {
+            peaks[currentYear] = val
+        }
+
+    });
+    console.log(data);
+    data = [];
+    median.pop();
+    $.each(median,function(index,array){
+        //console.log(index);
+        var year = '2000';
+        if(moment("2000-09-01").add(index,'days').month()<8){
+            year = '2001';
+        }
+        var medianVal = getMedian(array);
+        data.push([parseInt(moment("2000-09-01").add(index,'days').year(year).format('x')),medianVal]);
+    })
+    var series = {
+        'name' : 'Median',
+        'data' : data,
+        'id'   : 'median',
+        'type' : 'line',
+        'color': 'black',
+        'origColor' : 'black'
+    }
+    allSeries.push(series);
+    for (var key in peaks) {
+        if (peaks[key] == 0) delete peaks[key];
+    }
+
+    var highYears = getSortedKeys(peaks);
+    $.each(allSeries, function(index,series){
+        var order = highYears.indexOf(String(series['id']))+1;
+        series['order'] = order;
+        if(order == 1) {
+            series['color'] = 'rgba(153, 77, 0,0.5)';
+            series['origColor'] = 'rgba(153, 77, 0,0.5)';
+        }
+
+    });
+    return allSeries;
+}
+
+var site = getParameterByName('site');
+console.log('site= '+site);
+if(site == null){
+    site = "26451 1"
+}
+
+$(function () {
+    $( document ).ready(function() {
+        var chart;
+        var url = "http://data.rcc-acis.org/StnMeta",
+            params = {
+                bbox: "-130,50,-180,75",
+                meta: "name,sids,ll,valid_daterange",
+                elems: "snwd",
+                sdate: "2017-1-1",
+                edate: "2100-1-1"
+            };
+        postResults(url, params);
+        var sdata = getSnowData(site);
+        console.log(sdata);
+        var plotSeries = data2Series(sdata);
+        chart = new Highcharts.Chart({
+            chart: {
+                type: 'spline',
+                renderTo: 'container',
+                zoomType: 'xy',
+            },
+            credits: {
+                enabled: false
+            },
+            title: {
+                text: sdata.meta.name+' SNOW DEPTH',
+            },
+            xAxis: {
+                type: 'datetime',
+                dateTimeLabelFormats: { // don't display the dummy year
+                    month: '%e. %b',
+                    year: '%b'
+                },
+            },
+            yAxis: {
+                title: {
+                    text: 'Snow depth (in)'
+                },
+                min: 0
+            },
+            legend: {
+                singleSeriesEnabled: false,
+                useHTML: true,
+                itemDistance : 50,
+                align: 'right',
+                verticalAlign: 'top',
+                padding: 20,
+                layout: 'vertical',
+                itemHoverStyle: {
+                    color: 'black'
+                }
+            },
+            tooltip: {
+                headerFormat: '<b>{series.name}</b><br>',
+                pointFormat: '{point.x:%e. %b}: {point.y:.0f} in',
+                positioner: function () {
+                    return { x: 80, y: 50 };
+                },
+            },
+            plotOptions:{
+                series:{
+
+
+                    events: {
+                        mouseOver: function() {
+                            this.graph.attr('stroke', $('#setColor').css('backgroundColor'));
+                        },
+                        mouseOut: function() {
+                            console.log(this.userOptions);
+                            this.graph.attr('stroke', this.userOptions.origColor);
+                        }
+                    },
+                    stickyTracking : false,
+                    turboThreshold: 0,
+                    marker:{
+                        enabled: false
+                    },
+                    point: {
+                        events: {
+                            click: function(e) {
+                                    this.series.update({
+                                        color: $('#setColor').css('backgroundColor'),
+                                        origColor: $('#setColor').css('backgroundColor'),
+                                        showInLegend: true,
+                                        singleSeriesEnabled: true,
+                                    });
+                                    this.series.update({
+                                        zIndex : 99
+                                    });
+                                    this.redraw();
+                                    return;
+                             }
+                       }
+                   }
+                }
+            },
+
+            series: plotSeries
+        },
+        function(chart){
+            $(chart.series).each(function(i, serie){
+                $(serie.legendItem.element).hover(function(){
+                    console.log('hover');
+                    highlight(chart.series, serie.index, true);
+                }, function(){
+                    highlight(chart.series, serie.index, false);
+                });
+            });
+
+            function highlight(series, index, highlight) {
+                $(series).each(function (i, serie) {
+                    if(i == index) {
+                        serie.group.toFront();
+                        $.each(serie.data, function (k, data) {
+                            if(data.series) {
+                                if(highlight){
+                                    data.series.graph && data.series.graph.attr("stroke", 'blue');
+                                }
+                                else{
+                                    data.series.graph && data.series.graph.attr("stroke", data.series.userOptions.origColor);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
+
+
+
+</script>
+
+<div id="container" style="width: 1000px; height: 500px; margin: 0 auto"></div>
+Click Line to set color to: <button id="setColor" class="jscolor {valueElement:null,value:'0000FF'}" style="width:30px; height:10px;"></button>
+<div id="jresults"></div>
+<table id="JSONACIS" border="1"></table>

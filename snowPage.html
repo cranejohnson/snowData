@@ -1,0 +1,1293 @@
+
+<script type="text/javascript" src="https://www.weather.gov/js/jquery-1.10.2.min.js"></script>
+<div class="cms-content">
+    <meta content="text/html; charset=utf-8" https-equiv="content-type" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.1/leaflet.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.1/leaflet.js"></script>
+    <!-- Load Esri Leaflet from CDN -->
+    <script src="https://cdn-geoweb.s3.amazonaws.com/esri-leaflet/1.0.0-rc.5/esri-leaflet.js"></script>
+    <script src="https://code.highcharts.com/highcharts.src.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://highcharts.github.io/export-csv/export-csv.js"></script>
+    <script src="https://www.weather.gov/source/aprfc/js/jquery-ui.min.js"></script>
+    <script src="https://www.weather.gov/source/aprfc/js/moment.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.js"></script>
+
+    <script src="nwsLID2xmAcis_lookupJson.js"></script>
+
+    <style type="text/css">#title {
+                margin: 0 auto;
+            }
+            #holder {
+                width : 960px;
+                height : 500px;
+                margin: 0 auto;
+              }
+            .progressWindow {
+                    display: none;
+                    font-family: sans-serif;
+                    position: absolute;
+                    background-color: rgba(255, 255, 255, 0.5);
+                    border-radius: 5px;
+                    height: 40px;
+                    left:50%;
+                    top:50%;
+                    margin:-20px 0 0 -150px;
+                    z-index: 99999;
+                }
+                #progress {
+                    width: 300px;
+                }
+
+            #map {
+                width : 700px;
+                height : 510px;
+                position: relative;
+                float: left;
+              }
+            #select {
+                font-size: 12px;
+                width : 260px;
+                height : 500px;
+                position: relative;
+                float: left;
+            }
+            input{
+                vertical-align: middle;
+            }
+            #colorChange{
+                text-align:center;
+                height
+            }
+            #notes {
+                width:800px;
+                text-align:center;
+                font-weight: bold;
+                font-style: italic;
+                color: blue;
+            }
+            #container {
+                width: 800px;
+                height: 300px;
+                position: relative;
+                float: left;
+            }
+            #container2 {
+                width: 800px;
+                height: 400px;
+                position: relative;
+                float: left;
+            }
+            .infobox {
+                background-color: #ffffff;
+                border-radius: 5px;
+                box-shadow: 0 1px 7px rgba(0,0,0,0.65);
+                padding: 6px;
+                margin: 5px;
+            }
+            .legend {
+                font-weight: bold;
+                line-height: 18px;
+            }
+            .legend i {
+                width: 18px;
+                height: 18px;
+                display: inline-block;
+                margin-right: 8px;
+                opacity: 0.9;
+            }
+            .info {
+                    white-space: nowrap;
+                 }
+            .baseIcon {
+                font-size: 16px;
+                white-space:nowrap;
+                font-weight: bold;
+                text-shadow: 0 0 0.1em black, 0 0 0.1em black,
+                    0 0 0.1em black,0 0 0.1em black,0 0 0.1em;
+            }
+            .labelClass0{
+                color: #ff0000;
+            }
+            .labelClass4{
+                color: #ffaa00;
+            }
+            .labelClass7{
+                color: #ffff00;
+            }
+            .labelClass13{
+                color: #e9ffbe;
+            }
+            .labelClass25{
+                color: #aaff00;
+            }
+            .labelClass37{
+                color: #73dfff;
+            }
+            .labelClass49{
+                color: #005ce6;
+            }
+            .labelClass60{
+                color: #9a00d2;
+            }
+            .labelClass9999{
+                display:none;
+            }
+            .labelClassOld{
+                color: #cccccc;
+            }
+            ul#subMenuNav li .sub {
+                z-index:9999;
+            }
+            #nic_date {
+                text-align: center;
+            }
+            #slider {
+                display: none;
+                margin-top: 5px;
+                margin-left: 5px;
+                margin-right: 5px;
+            }
+    </style>
+    <div id="holder">
+        <div class="progressWindow" id="progress">
+            <div id="progtext">Loading Data...</div>
+            <div id="progressBar">&nbsp;</div>
+        </div>
+
+        <div id="title">
+            <h2>Snow Depth - Current</h2>
+        </div>
+
+        <div id="map">&nbsp;</div>
+
+        <div id="select">
+            <div class="infobox" id="buttons">
+                <label><input checked="checked" name="s" type="radio" value="c" />Current Snow Depth</label><br />
+                <label><input name="s" type="radio" value="1" />1 Day Change (24 hour)</label><br />
+                <label><input name="s" type="radio" value="3" />3 Day Change</label><br />
+                <label><input name="s" type="radio" value="7" />7 Day Change</label>
+                <hr />
+                <label><input name="s" type="radio" value="sf" />Snow Fall</label>
+                <hr />
+                <label><input id="t" type="checkbox" value="t" />Circle Markers</label>
+                <hr />
+                <label><input id="sc" type="checkbox" value="sc" />Snow Coverage</label>
+
+                <div id="nic_date">&nbsp;</div>
+
+                <div id="slider">&nbsp;</div>
+            </div>
+
+            <div class="infobox" id="words">Click a reading on the map to view a graph for that station. Snow depths shown are measured by remote automated gages(<a href="https://www.wcc.nrcs.usda.gov/snow/">NRCS - Snotel</a>). Snowfall: Maximum amount of new snow that has fallen since the previous observation, usually 24 hours. Snowfall is generally only available at manual observations stations. These data are provisional and have not be verified for accuracy. Errors in the data can occur for a variety of reasons such as vegetation, blowing snow and sensor failure.
+                <hr />
+                The Snow Coverage overlay is created daily by the National Ice Center from a wide variety of satellite imagery (AVHRR, GOES, SSMI, etc.) as well as derived mapped products (USAF Snow/Ice Analysis, AMSU, AMSR-E, NCEP models, etc.) and surface observations. For more information please visit <a href="http://www.natice.noaa.gov/ims/">http://www.natice.noaa.gov/ims/</a>
+            </div>
+            Click plot lines in charts to set line color to: <button id="setColor" class="jscolor {valueElement:null,value:'0000FF'}" style="width:30px; height:10px;"></button>
+        </div>
+
+        <div id="container">&nbsp;</div>
+        <div id="notes"></div>
+        <div id="container2"></div>
+    </div>
+    <script>
+    var lid;
+    var results = {};
+    var data = {};
+    var markerColor = "white";
+    var dataType, dataUnit, dataName;
+
+    console.log(lookup);
+
+    $("#progressBar").progressbar({
+        value: false
+    });
+    $( "#slider" ).slider({
+            value: 0.7,
+            min: 0.1,
+            max: 1.0,
+            step: 0.1
+        });
+    //Make Map
+    var map = L.map('map');
+    L.esri.basemapLayer("NationalGeographic").addTo(map);
+
+    //JS Date Formatter
+     Date.prototype.yyyymmddhh = function() {
+       var yyyy = this.getFullYear().toString();
+       var mm = (this.getMonth()+1).toString(); // getMonth() is zero-based
+       var dd  = this.getDate().toString();
+       var hh  = this.getHours().toString();
+       return yyyy + (mm[1]?mm:"0"+mm[0]) + (dd[1]?dd:"0"+dd[0]) + (hh[1]?hh:"0"+hh[0]); // padding
+      };
+
+
+    //Set Marker Color by value
+    function getColor(d) {
+        return d >= 60  	? '#9a00d2' :
+               d >= 49  	? '#005ce6' :
+               d >= 37  	? '#73dfff' :
+               d >= 25  	? '#aaff00' :
+               d >= 13      ? '#e9ffbe' :
+               d >= 7       ? '#ffff00' :
+               d >= 4       ? '#ffaa00' :
+                              '#ff0000';
+    }
+
+    function getColorIdx(d) {
+        return d > 60 	? 60 :
+               d >= 49 	? 49 :
+               d >= 37  ? 37 :
+               d >= 25  ? 25 :
+               d >= 13  ? 13 :
+               d >= 7 	? 7 :
+               d >= 4   ? 4 :
+                          0;
+    }
+
+    function getBinColor(d) {
+        return	d == null ? 9999 :
+                d > 0 	? 37 : 25;
+    }
+
+    function getDeltaColor(d) {
+        return	d == null ? 9999 :
+                d > 0 	? '#73dfff' : '#aaff00';
+    }
+    //Marker Properties
+    var geojsonMarkerOptions = {
+        radius : 5,
+        fillColor : markerColor,
+        color : "#000000",
+        weight : 1,
+        opacity : 1,
+        fillOpacity : 0.9
+    };
+
+    //Get GeoJSON data
+    $("#progress").show();
+
+    $.ajax({
+        type: "POST",
+        url: "/source/aprfc/snow.json",
+        dataType: 'json',
+        success: function (response) {
+            $("#progress").hide();
+
+            d = new Date(response.data.sd.features[0].metadata.created);
+            var lastUpdate = ("0"+(d.getMonth()+1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2)+ "-" +
+            d.getFullYear() + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+            $("#title").html("<h2>Snow Depth - "+lastUpdate+"</h2>");
+            var sd = response.data.sd;
+            var sf = response.data.sf;
+            //console.log(response);
+            //build layer and add to map
+            sfgeojsonLayer = L.geoJson(sf, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    data = feature.properties.data[feature.properties.data.length - 1][1];
+                    var date = new Date(feature.properties.data[feature.properties.data.length - 1][0]);
+                    var date7DaysAgo = new Date(new Date().setDate(new Date().getDate()-7));
+                    //assign color to marker
+                    colorClass = getColorIdx(data);
+                    if (date < date7DaysAgo){
+                        colorClass = "Old";
+                    }
+                    name = feature.properties.name;
+                    dataType = feature.properties.datatype;
+                    dataUnit = feature.properties.dataunit;
+                    dataName = feature.properties.dataname;
+                    var divIcon = new L.divIcon({
+                        className: 'baseIcon labelClass'+colorClass,
+                        html: data+"\""
+                    });
+                    return L.marker(latlng, {
+                          icon: divIcon
+                    }).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\" at "+date.toDateString()+"<br>");
+                }
+
+            });//
+            sfmarkerLayer = L.geoJson(sf, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    //console.log(feature);
+                    name = feature.properties.name;
+                    data = feature.properties.data[feature.properties.data.length - 1][1];
+                    var date = new Date(feature.properties.data[feature.properties.data.length - 1][0]);
+                    var date7DaysAgo = new Date(new Date().setDate(new Date().getDate()-7));
+                    //assign color to marker
+                    geojsonMarkerOptions.fillColor = getColor(data);
+                    if (date < date7DaysAgo){
+                        geojsonMarkerOptions.fillColor = "#cccccc";
+                    }
+
+                    return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\" at "+date.toDateString()+"<br>");
+                }
+            });
+            geojsonLayer = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    data = feature.properties.filteredData[feature.properties.filteredData.length - 1][1];
+                    rawData = feature.properties.data[feature.properties.data.length - 1][1];
+                    var date = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    var date7DaysAgo = new Date(new Date().setDate(new Date().getDate()-7));
+                    //assign color to marker
+                    colorClass = getColorIdx(data);
+                    if (date < date7DaysAgo){
+                        colorClass = "Old";
+                    }
+                    name = feature.properties.name;
+                    dataType = feature.properties.datatype;
+                    dataUnit = feature.properties.dataunit;
+                    dataName = feature.properties.dataname;
+                    var divIcon = new L.divIcon({
+                        className: 'baseIcon labelClass'+colorClass,
+                        html: data+"\""
+                    });
+                    return L.marker(latlng, {
+                          icon: divIcon
+                    }).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\" (Smoothed value)<br>"+rawData+"\" (Raw sensor value) <br>at "+moment(date).format("DD MMM YYYY HHmm"));
+                }
+		     // })
+            }).addTo(map);//
+            markerLayer = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    //console.log(feature);
+                    name = feature.properties.name;
+                    data = feature.properties.filteredData[feature.properties.filteredData.length - 1][1];
+                    rawData = feature.properties.data[feature.properties.data.length - 1][1];
+                    var date = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    var date7DaysAgo = new Date(new Date().setDate(new Date().getDate()-7));
+                    //assign color to marker
+                    geojsonMarkerOptions.fillColor = getColor(data);
+                    if (date < date7DaysAgo){
+                        geojsonMarkerOptions.fillColor = "#cccccc";
+                    }
+
+                    return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\" (Smoothed value)<br>"+rawData+"\" (Raw sensor value) <br>at "+moment(date).format("DD MMM YYYY HHmm"));
+                }
+            });//.addTo(map)
+            markerLayer1 = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    crDate = new Date(feature.metadata.created);
+                    targetDate = new Date(crDate.getTime());
+                    targetDate.setDate(crDate.getDate() - 1);
+                    tgtDate = targetDate.yyyymmddhh();
+
+                    //Create a date object x days prior to latest ob date then get yyyymmsshh
+                    ltDate = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    targetDtg = new Date(ltDate.getTime());
+                    targetDtg.setDate(ltDate.getDate() - 1);
+                    tgtDtg = targetDtg.yyyymmddhh();
+                    latestDate = ltDate.yyyymmddhh();
+                    name = feature.properties.name;
+                    if (latestDate > tgtDate){
+                        for (x = 0; x <= feature.properties.filteredData.length - 1;x++){
+                            tempDate = new Date(feature.properties.filteredData[x][0]);
+                            tmpDate = tempDate.yyyymmddhh();
+                            //Find ob +/- 3 hours from target relative to last ob
+                            if (parseInt(tmpDate) >= parseInt(tgtDtg)-3 && parseInt(tmpDate) <= parseInt(tgtDtg)+3){
+                                data = (feature.properties.filteredData[feature.properties.filteredData.length - 1][1] - feature.properties.filteredData[x][1]).toFixed(1);
+                                break;
+                            }else {data = null;}
+                        }
+                    } else {
+                        data = null;
+                    }
+                    if (data === null){
+                        geojsonMarkerOptions.opacity = 0;
+                        geojsonMarkerOptions.fillOpacity = 0;
+
+                    }else{
+                        geojsonMarkerOptions.opacity = 1;
+                        geojsonMarkerOptions.fillOpacity = 0.9;
+                    }
+                    geojsonMarkerOptions.fillColor = getDeltaColor(data);
+                    return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
+                }
+            });//.addTo(map)
+            geojsonLayer1 = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    //console.log(feature);
+                    crDate = new Date(feature.metadata.created);
+                    targetDate = new Date(crDate.getTime());
+                    targetDate.setDate(crDate.getDate() - 1);
+                    tgtDate = targetDate.yyyymmddhh();
+
+                    //Create a date object x days prior to latest ob date then get yyyymmsshh
+                    ltDate = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    targetDtg = new Date(ltDate.getTime());
+                    targetDtg.setDate(ltDate.getDate() - 1);
+                    tgtDtg = targetDtg.yyyymmddhh();
+                    latestDate = ltDate.yyyymmddhh();
+                    name = feature.properties.name;
+                    if (latestDate > tgtDate){
+                        for (x = 0; x <= feature.properties.filteredData.length - 1;x++){
+                            tempDate = new Date(feature.properties.filteredData[x][0]);
+                            tmpDate = tempDate.yyyymmddhh();
+                            //Find ob +/- 3 hours from target relative to last ob
+                            if (parseInt(tmpDate) >= parseInt(tgtDtg)-3 && parseInt(tmpDate) <= parseInt(tgtDtg)+3){
+
+                                data = (feature.properties.filteredData[feature.properties.filteredData.length - 1][1] - feature.properties.filteredData[x][1]).toFixed(1);
+                            break;
+                            }else {data = null;}
+                        }
+                    } else {
+                        data = null;
+                    }
+
+                    //assign color to marker
+                    colorClass = getBinColor(data);
+
+                    var divIcon = new L.divIcon({
+                        className: 'baseIcon labelClass'+colorClass,
+                        html: data+"\""
+                    });
+                    return L.marker(latlng, {
+                          icon: divIcon
+                    }).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
+                }
+            });
+            markerLayer3 = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    crDate = new Date(feature.metadata.created);
+                    targetDate = new Date(crDate.getTime());
+                    targetDate.setDate(crDate.getDate() - 3);
+                    tgtDate = targetDate.yyyymmddhh();
+
+                    //Create a date object x days prior to latest ob date then get yyyymmsshh
+                    ltDate = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    targetDtg = new Date(ltDate.getTime());
+                    targetDtg.setDate(ltDate.getDate() - 3);
+                    tgtDtg = targetDtg.yyyymmddhh();
+                    latestDate = ltDate.yyyymmddhh();
+                    name = feature.properties.name;
+                    if (latestDate > tgtDate){
+                        for (x = 0; x <= feature.properties.filteredData.length - 1;x++){
+                            tempDate = new Date(feature.properties.filteredData[x][0]);
+                            tmpDate = tempDate.yyyymmddhh();
+                            //Find ob +/- 3 hours from target relative to last ob
+                            if (parseInt(tmpDate) >= parseInt(tgtDtg)-3 && parseInt(tmpDate) <= parseInt(tgtDtg)+3){
+                                data = (feature.properties.filteredData[feature.properties.filteredData.length - 1][1] - feature.properties.filteredData[x][1]).toFixed(1);
+                                break;
+                            }else {data = null;}
+                        }
+                    } else {
+                        data = null;
+                    }
+                    if (data === null){
+                        geojsonMarkerOptions.opacity = 0;
+                        geojsonMarkerOptions.fillOpacity = 0;
+
+                    }else{
+                        geojsonMarkerOptions.opacity = 1;
+                        geojsonMarkerOptions.fillOpacity = 0.9;
+                    }
+                    geojsonMarkerOptions.fillColor = getDeltaColor(data);
+                    return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
+                }
+            });//.addTo(map)
+            geojsonLayer3 = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    //console.log(feature);
+                    crDate = new Date(feature.metadata.created);
+                    targetDate = new Date(crDate.getTime());
+                    targetDate.setDate(crDate.getDate() - 3);
+                    tgtDate = targetDate.yyyymmddhh();
+
+                    //Create a date object x days prior to latest ob date then get yyyymmsshh
+                    ltDate = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    targetDtg = new Date(ltDate.getTime());
+                    targetDtg.setDate(ltDate.getDate() - 3);
+                    tgtDtg = targetDtg.yyyymmddhh();
+                    latestDate = ltDate.yyyymmddhh();
+                    name = feature.properties.name;
+                    if (latestDate > tgtDate){
+                        for (x = 0; x <= feature.properties.filteredData.length - 1;x++){
+                            tempDate = new Date(feature.properties.filteredData[x][0]);
+                            tmpDate = tempDate.yyyymmddhh();
+                            //Find ob +/- 3 hours from target relative to last ob
+                            if (parseInt(tmpDate) >= parseInt(tgtDtg)-3 && parseInt(tmpDate) <= parseInt(tgtDtg)+3){
+                                data = (feature.properties.filteredData[feature.properties.filteredData.length - 1][1] - feature.properties.filteredData[x][1]).toFixed(1);
+                            break;
+                            }else {data = null;}
+                        }
+                    } else {
+                        data = null;
+                    }
+                    //assign color to marker
+                    colorClass = getBinColor(data);
+
+                    var divIcon = new L.divIcon({
+                        className: 'baseIcon labelClass'+colorClass,
+                        html: data+"\""
+                    });
+                    return L.marker(latlng, {
+                          icon: divIcon
+                    }).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
+                }
+            });//.addTo(map)
+            markerLayer7 = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    crDate = new Date(feature.metadata.created);
+                    targetDate = new Date(crDate.getTime());
+                    targetDate.setDate(crDate.getDate() - 7);
+                    tgtDate = targetDate.yyyymmddhh();
+
+                    //Create a date object x days prior to latest ob date then get yyyymmsshh
+                    ltDate = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    targetDtg = new Date(ltDate.getTime());
+                    targetDtg.setDate(ltDate.getDate() - 7);
+                    tgtDtg = targetDtg.yyyymmddhh();
+                    latestDate = ltDate.yyyymmddhh();
+                    name = feature.properties.name;
+                    if (latestDate > tgtDate){
+                        for (x = 0; x <= feature.properties.filteredData.length - 1;x++){
+                            tempDate = new Date(feature.properties.filteredData[x][0]);
+                            tmpDate = tempDate.yyyymmddhh();
+                            //Find ob +/- 3 hours from target relative to last ob
+                            if (parseInt(tmpDate) >= parseInt(tgtDtg)-3 && parseInt(tmpDate) <= parseInt(tgtDtg)+3){
+                                data = (feature.properties.filteredData[feature.properties.filteredData.length - 1][1] - feature.properties.filteredData[x][1]).toFixed(1);
+                                break;
+                            }else {data = null;}
+                        }
+                    } else {
+                        data = null;
+                    }
+                    if (data === null){
+                        geojsonMarkerOptions.opacity = 0;
+                        geojsonMarkerOptions.fillOpacity = 0;
+
+                    }else{
+                        geojsonMarkerOptions.opacity = 1;
+                        geojsonMarkerOptions.fillOpacity = 0.9;
+                    }
+                    geojsonMarkerOptions.fillColor = getDeltaColor(data);
+                    return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
+                }
+            });//.addTo(map)
+            geojsonLayer7 = L.geoJson(sd, {
+                //onEachFeature: onEachFeature,
+                pointToLayer: function (feature, latlng) {
+                    //console.log(feature);
+                    crDate = new Date(feature.metadata.created);
+                    targetDate = new Date(crDate.getTime());
+                    targetDate.setDate(crDate.getDate() - 7);
+                    tgtDate = targetDate.yyyymmddhh();
+
+                    //Create a date object x days prior to latest ob date then get yyyymmsshh
+                    ltDate = new Date(feature.properties.filteredData[feature.properties.filteredData.length - 1][0]);
+                    targetDtg = new Date(ltDate.getTime());
+                    targetDtg.setDate(ltDate.getDate() - 7);
+                    tgtDtg = targetDtg.yyyymmddhh();
+                    latestDate = ltDate.yyyymmddhh();
+                    name = feature.properties.name;
+                    if (latestDate > tgtDate){
+                        for (x = 0; x <= feature.properties.filteredData.length - 1;x++){
+                            tempDate = new Date(feature.properties.filteredData[x][0]);
+                            tmpDate = tempDate.yyyymmddhh();
+                            //Find ob +/- 3 hours from target relative to last ob
+                            if (parseInt(tmpDate) >= parseInt(tgtDtg)-3 && parseInt(tmpDate) <= parseInt(tgtDtg)+3){
+                                //console.log("7 day delta");
+                                //console.log(feature.properties.data[x][1]);
+                                data = (feature.properties.filteredData[feature.properties.filteredData.length - 1][1] - feature.properties.filteredData[x][1]).toFixed(1);
+                                break;
+                            }else {data = null;}
+                        }
+                    } else {
+                        data = null;
+                    }
+                    //assign color to marker
+                    colorClass = getBinColor(data);
+
+                    var divIcon = new L.divIcon({
+                        className: 'baseIcon labelClass'+colorClass,
+                        html: data+"\""
+                    });
+                    return L.marker(latlng, {
+                          icon: divIcon
+                    }).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
+                }
+            });//.addTo(map)
+            map.fitBounds(geojsonLayer.getBounds());
+            map.setZoom(4);
+            var imageUrl = '/images/aprfc/AESCNIC_latest.png';
+            var imageBounds = L.latLngBounds([
+                [72.0, -125.0],
+                [54.0, -172.0]]);
+            var overlay = L.imageOverlay(imageUrl, imageBounds, {opacity: 0.7});
+            $( "#slider" ).on( "slide", function( event, ui ) {
+                overlay.setOpacity(ui.value);
+            } );
+            $.ajax({
+                type: "POST",
+                url: "/source/aprfc/AESCNIC_date.json",
+                dataType: 'json',
+                success: function (resp) {
+                    $("#nic_date").text(resp.date);
+                }
+            });
+            var otherLegend = L.control({position: 'topright'});
+            otherLegend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = '<b>Snow Depth Change</b><br><i style="background:#73dfff"></i>More Snow<br><i style="background:#aaff00"></i>Same or Less Snow<br>';
+                return div;
+            };
+
+            var legend = L.control({position: 'topright'});
+            legend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'info legend'),
+                    grades = [0, 4, 7, 13, 25, 37, 49, 60],
+                    labels = [];
+                div.innerHTML =	'<b>Snow Depth</b><br>';
+
+                // loop through our density intervals and generate a label with a colored square for each interval
+                for (var i = 0; i < grades.length; i++) {
+                    div.innerHTML +=
+                        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+                }
+                div.innerHTML += '<br><i style="background:#cccccc"></i>Old Data';
+                return div;
+            };
+            legend.addTo(map);
+            //Get data onClick
+            sfgeojsonLayer.on('click', function (d) {
+               $('html,body').animate({scrollTop:$(document).height()});
+               dataName = d.layer.feature.properties.dataname;
+               name = d.layer.feature.properties.name;
+               data = d.layer.feature.properties.data;
+               plotIt(data, null, null, name);
+           });
+            sfmarkerLayer.on('click', function (d) {
+               $('html,body').animate({scrollTop:$(document).height()});
+               dataName = d.layer.feature.properties.dataname;
+               name = d.layer.feature.properties.name;
+               data = d.layer.feature.properties.data;
+               plotIt(data, null, null, name);
+            });
+            geojsonLayer.on('click', function (d) {
+                handleMapClick(d);
+            });
+            markerLayer.on('click', function (d) {
+                handleMapClick(d);
+           });
+           markerLayer1.on('click', function (d) {
+                handleMapClick(d);
+           });
+           markerLayer3.on('click', function (d) {
+                handleMapClick(d);
+           });
+           markerLayer7.on('click', function (d) {
+                handleMapClick(d);
+           });
+           geojsonLayer1.on('click', function (d) {
+                handleMapClick(d);
+           });
+           geojsonLayer3.on('click', function (d) {
+                handleMapClick(d);
+           });
+           geojsonLayer7.on('click', function (d) {
+                handleMapClick(d);
+           });
+           function tog() {
+                if($('#sc').prop('checked')) {
+                    map.addLayer(overlay);
+                    $("#slider").show();
+                }else{
+                    map.removeLayer(overlay);
+                    $("#slider").hide();
+                }
+                //$("#container").empty();
+                var sel = $("input[name=s]:checked").val();
+                //console.log(sel);
+                if (sel == "c"){
+                    $("#title").html('<h2>Snow Depth - '+lastUpdate+'</h2>');
+                    if (typeof legend._map == "undefined" || legend._map === null ){
+                        map.removeControl(otherLegend);
+                        map.addControl(legend);
+                    }
+                    $(".legend b").html("Snow Depth");
+                    map.removeLayer(markerLayer1);
+                    map.removeLayer(markerLayer3);
+                    map.removeLayer(markerLayer7);
+                    map.removeLayer(sfmarkerLayer);
+                    map.removeLayer(geojsonLayer1);
+                    map.removeLayer(geojsonLayer3);
+                    map.removeLayer(geojsonLayer7);
+                    map.removeLayer(sfgeojsonLayer);
+                    if($('#t').prop('checked')) {
+                        map.addLayer(markerLayer);
+                        map.removeLayer(geojsonLayer);
+                    }else{
+                        map.addLayer(geojsonLayer);
+                        map.removeLayer(markerLayer);
+                    }
+                }else if(sel == 1){
+                    $("#title").html('<h2>Snow Depth - 1 Day Change</h2>');
+                    console.log(legend._map);
+                    console.log(otherLegend._map);
+                    if (typeof otherLegend._map == "undefined" || otherLegend._map === null){
+                        map.removeControl(legend);
+                        map.addControl(otherLegend);
+                    }
+                    map.removeLayer(markerLayer);
+                    map.removeLayer(markerLayer3);
+                    map.removeLayer(markerLayer7);
+                    map.removeLayer(sfmarkerLayer);
+                    map.removeLayer(geojsonLayer);
+                    map.removeLayer(geojsonLayer3);
+                    map.removeLayer(geojsonLayer7);
+                    map.removeLayer(sfgeojsonLayer);
+                    if($('#t').prop('checked')) {
+                        map.addLayer(markerLayer1);
+                        map.removeLayer(geojsonLayer1);
+                    }else{
+                        map.addLayer(geojsonLayer1);
+                        map.removeLayer(markerLayer1);
+                    }
+                }else if(sel == 3){
+                    $("#title").html('<h2>Snow Depth - 3 Day Change</h2>');
+                    if (typeof otherLegend._map == "undefined" || otherLegend._map === null){
+                        map.removeControl(legend);
+                        map.addControl(otherLegend);
+                    }
+                    map.removeLayer(markerLayer);
+                    map.removeLayer(markerLayer1);
+                    map.removeLayer(markerLayer7);
+                    map.removeLayer(sfmarkerLayer);
+                    map.removeLayer(geojsonLayer);
+                    map.removeLayer(geojsonLayer1);
+                    map.removeLayer(geojsonLayer7);
+                    map.removeLayer(sfgeojsonLayer);
+                    if($('#t').prop('checked')) {
+                        map.addLayer(markerLayer3);
+                        map.removeLayer(geojsonLayer3);
+                    }else{
+                        map.addLayer(geojsonLayer3);
+                        map.removeLayer(markerLayer3);
+                    }
+                }else if(sel == 7){
+                    $("#title").html('<h2>Snow Depth - 7 Day Change</h2>');
+                    if (typeof otherLegend._map == "undefined" || otherLegend._map === null){
+                        map.removeControl(legend);
+                        map.addControl(otherLegend);
+                    }
+                    map.removeLayer(markerLayer);
+                    map.removeLayer(markerLayer1);
+                    map.removeLayer(markerLayer3);
+                    map.removeLayer(sfmarkerLayer);
+                    map.removeLayer(geojsonLayer);
+                    map.removeLayer(geojsonLayer1);
+                    map.removeLayer(geojsonLayer3);
+                    map.removeLayer(sfgeojsonLayer);
+                    if($('#t').prop('checked')) {
+                        map.addLayer(markerLayer7);
+                        map.removeLayer(geojsonLayer7);
+                    }else{
+                        map.addLayer(geojsonLayer7);
+                        map.removeLayer(markerLayer7);
+                    }
+                }else if(sel == "sf"){
+                    $("#title").html('<h2>Snow Fall</h2>');
+                    if (typeof legend._map == "undefined" || legend._map === null){
+                        map.removeControl(otherLegend);
+                        map.addControl(legend);
+                    }
+                    console.log($(".legend b"));
+                    $(".legend b").html("Snow Fall");
+                    map.removeLayer(markerLayer);
+                    map.removeLayer(markerLayer1);
+                    map.removeLayer(markerLayer3);
+                    map.removeLayer(markerLayer7);
+                    map.removeLayer(geojsonLayer);
+                    map.removeLayer(geojsonLayer1);
+                    map.removeLayer(geojsonLayer3);
+                    map.removeLayer(geojsonLayer7);
+                    if($('#t').prop('checked')) {
+                        map.addLayer(sfmarkerLayer);
+                        map.removeLayer(sfgeojsonLayer);
+                    }else{
+                        map.addLayer(sfgeojsonLayer);
+                        map.removeLayer(sfmarkerLayer);
+                    }
+                }
+            }
+           //Click buttons to do stuff
+            $("input[name=s], #t, #sc").click(tog);
+            //$("#t").click(tog);
+
+        }
+    });
+
+
+    function plotIt(d, f, m, l) {
+        //console.log(d);
+        var monthNames = [
+            "Jan", "Feb", "Mar",
+            "Apr", "May", "Jun", "Jul",
+            "Aug", "Sep", "Oct",
+            "Nov", "Dec"
+          ];
+
+        yAxisMax = (parseInt(m/25)+1)*25;
+
+        Highcharts.setOptions({
+            global: {
+                timezoneOffset: 10 * 60
+            }
+        });
+        $('#container').highcharts({
+            chart: {type: 'line',zoomType: 'x'},
+            title: {text: l + ' ' + dataName + " 30 Day Plot"},
+            xAxis: {type: 'datetime'},
+            yAxis: {
+                title: {
+                    text: "Snow Depth ("+dataUnit+")",
+                },
+                max: yAxisMax,
+                min: 0
+            },
+            credits: {enabled: false},
+            legend: {enabled: true},
+            plotOptions: {
+                series: {
+                    point:{
+                        events:{
+                            click: function(e) {
+                                if (e.shiftKey) {
+                                    this.series.update({
+                                        color: $('#setColor').css('backgroundColor'),
+                                        zIndex: 1
+                                    });
+                                    //return;
+                                }
+                            }
+                        }
+                    }
+                },
+                line: {
+                    marker: {enabled: false}
+                 }
+            },
+            series: [{
+                name: dataName+" (Raw Sensor Values)",
+                data: d,
+            },{
+                name: dataName+" (Smoothed Values)",
+                data: f,
+            }],
+            tooltip: {
+                formatter: function() {
+                    var s = [];
+                    d = new Date(this.x);
+                    var day = d.getDate();
+                    var monthIndex = d.getMonth();
+                    var yr = d.getFullYear();
+                    var hh = d.getHours().toString();
+                    var min = d.getMinutes().toString();
+                    s.push(day+" "+monthNames[monthIndex]+" "+yr+" "+(hh[1]?hh:"0"+hh[0])+":"+(min[1]?min:"0"+min[0]));
+                    $.each(this.points, function(i, point) {
+                        s.push('<span style="font-weight:bold;">'+ point.series.name +' : </span>'+
+                            point.y);
+                    });
+
+                    return s.join('<br>');
+                },
+                shared: true
+            }
+        });
+    };
+
+    function handleMapClick(d){
+        plotXmacis(lookup[d.layer.feature.properties.lid],'container2','notes');
+
+        $('html,body').animate({scrollTop:400});
+        dataName = d.layer.feature.properties.dataname;
+        name = d.layer.feature.properties.name;
+        data = d.layer.feature.properties.data;
+        filteredData = d.layer.feature.properties.filteredData;
+        yMax = d.layer.feature.properties.maxFilteredDatum;
+        plotIt(data, filteredData, yMax, name);
+    }
+
+    //////////////////////////////
+    var snowData = {};
+
+    function getParameterByName(name, url) {
+            if (!url) url = window.location.href;
+            name = name.replace(/[\[\]]/g, "\\$&");
+            var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+                results = regex.exec(url);
+            if (!results) return null;
+            if (!results[2]) return '';
+            return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+
+
+    //web services success callback
+    function postSuccess(results) {
+        console.log(results);
+        //This will store the html string that will be inserted into
+        //the table id JSONACIS
+        var tableString = '<tr><th>Name</th><th>Station Start</th><th>Station End</th></tr>';
+
+        //Loop through the results and for each station
+        for (var key in results.meta) {
+            //add a new row.
+            tableString = tableString + '<tr><td><a href ="?site='+results.meta[key].sids[0]+'">' + results.meta[key].name +'</a></td><td>' + results.meta[key].valid_daterange[0][0] + '</td><td>' + results.meta[key].valid_daterange[0][1] + '</td></tr>';
+        }
+
+        //This call will inject the html string back into the page
+        //so that it can be seen.
+        $('#JSONACIS ').html(tableString);
+    }
+
+    //web services failure callback
+    function postError(xhr, textStatus, error) {
+        $("#jresults").empty().html("<p>Web services call failed: " + error + "</p>");
+    }
+
+
+
+    function getSortedKeys(obj) {
+        var keys = []; for(var key in obj) keys.push(key);
+        return keys.sort(function(a,b){return obj[b]-obj[a]});
+    }
+
+    function getSnowData(station){
+        var nextYear = moment().add(4,'months').year()+1;
+
+        var url = "http://data.rcc-acis.org/StnMeta",
+        params = {
+                meta: "name,sids,ll,valid_daterange",
+                elems: "snwd",
+                sdate: "2017-1-1",
+                edate: "2100-1-1",
+                sids: station
+            };
+        var metaInfo;
+        $.ajax({
+          type: "POST",
+          async: false,
+          url: url,
+          data: params,
+          success : function (response){
+            metaInfo = response;
+          }
+
+
+        })
+        console.log(metaInfo);
+        var startDate = metaInfo.meta[0].valid_daterange[0][0];
+        var endDate = metaInfo.meta[0].valid_daterange[0][1];
+        console.log(startDate);
+
+        url = "https://data.rcc-acis.org/StnData";
+        $.ajax({
+          type: "POST",
+          async: false,
+          url: url,
+          data: {"params": '{"elems":[{"name":"snwd"}],"sid":"'+station+'","sDate":"'+startDate+'","eDate":"'+nextYear+'-01-01"}',"output":'json'},
+            success: function (response) {
+                snowData = response;
+            },
+            error: function () {
+                alert("error");
+            }
+        });
+        return snowData;
+
+    }
+
+    function getMedian(values) {
+        values.sort( function(a,b) {return a - b;} );
+        var half = Math.floor(values.length/2);
+        if(values.length % 2)
+            return values[half];
+        else
+            return (values[half-1] + values[half]) / 2.0;
+    }
+
+
+    function data2Series(acisData){
+
+        var allSeries = [];
+        var currentYear = moment(acisData.data[0][0]).add(4,'months').year();
+        var thisYear = moment().add(4,'months').year();
+        var data = [];
+        var median = [];
+        var peaks = {};
+        var missingOk = 5;
+        var missing = 0;
+        for ( var i = 1800; i < 2100; i++ ) {
+            peaks[i] = 0;
+        }
+        for ( var i = 0; i < 366; i++ ) {
+            median[i] = [];
+        }
+        $.each( acisData.data, function( index,array ) {
+            if(moment(array[0]).add(4, 'months').year() > currentYear){
+                var lineColor = 'rgba(200,200,200,0.3)';
+                var zVal = 1;
+                if(currentYear == thisYear){
+                    lineColor = 'red';
+                    zVal      = 3;
+                }
+                var series = {
+                    'name' : String(currentYear-1)+'-'+String(currentYear),
+                    'data' : data,
+                    'id'   : currentYear,
+                    'type' : 'line',
+                    'order': 0,
+                    'zIndex'    : zVal,
+                    'color': lineColor,
+                    'origColor' : lineColor,
+                    'max'  : peaks[currentYear],
+                    }
+                if(peaks[currentYear] == 0 ) peaks[currentYear] =1;
+                if(data.length > 0) allSeries.push(series);
+                data = [];
+                currentYear = moment(array[0]).add(4, 'months').year();
+             }
+            var val;
+            //if(array[1] == 'M') val = null;
+
+            if($.isNumeric(array[1])){
+                val =  parseInt(array[1])
+                missing = 0;
+             }
+             else{
+                if(array[1] == 'T'){
+                    val = 0;
+                    missing = 0;
+                }
+                else{
+                  val = null;
+                  missing = missing + 1;
+                }
+             }
+            if(moment().diff(array[0]) < 0){
+                val = null;
+            }
+            var year = '2000';
+            if(moment(array[0]).month()<8){
+                year = '2001';
+            }
+            if(val != null){
+                median[moment(array[0]).diff(moment(String(currentYear-1)+'-09-01'),'days')].push(val);
+            }
+            if (missing > missingOk){
+                data.push([parseInt(moment(array[0]).year(year).format('x')),val]);
+            }else{
+                if(val != null){
+                    data.push([parseInt(moment(array[0]).year(year).format('x')),val]);
+                }
+            }
+
+
+            if(val > peaks[currentYear])  {
+                peaks[currentYear] = val
+            }
+
+        });
+        console.log(data);
+        data = [];
+        median.pop();
+        $.each(median,function(index,array){
+            //console.log(index);
+            var year = '2000';
+            if(moment("2000-09-01").add(index,'days').month()<8){
+                year = '2001';
+            }
+            var medianVal = getMedian(array);
+            data.push([parseInt(moment("2000-09-01").add(index,'days').year(year).format('x')),medianVal]);
+        })
+        var series = {
+            'name' : 'Average (median)',
+            'data' : data,
+            'id'   : 'median',
+            'type' : 'line',
+            'color': 'black',
+            'zIndex': 2,
+            'origColor' : 'black'
+        }
+        allSeries.push(series);
+        for (var key in peaks) {
+            if (peaks[key] == 0) delete peaks[key];
+        }
+
+        var highYears = getSortedKeys(peaks);
+        var maxSeries = {
+            'id'   : 'max',
+            'type' : 'line',
+            'zIndex'    : 1,
+            'color': 'rgba(153, 77, 0,0.5)',
+            'origColor' : 'rgba(153, 77, 0,0.5)',
+            };
+        $.each(allSeries, function(index,series){
+            var order = highYears.indexOf(String(series['id']))+1;
+            series['order'] = order;
+            if(order == 1) {
+                maxSeries.data = series.data;
+                maxSeries['name'] = "Max "+series['name'];
+            }
+
+        });
+        allSeries.push(maxSeries);
+        return allSeries;
+    }
+
+
+
+
+    function plotXmacis(site,chartDiv,notesDiv) {
+        if (typeof site == 'undefined'){
+            console.log('Not an xmAcis Site');
+            $("#"+notesDiv).html("<hr><br><br>No available snow depth archive data available for this site.");
+            $("#"+chartDiv).html("");
+            return;
+        }
+        var chart;
+        var sdata = getSnowData(site);
+        console.log(sdata);
+
+        $("#"+notesDiv).html("The plot above displays 30 days of near real time snow depth data. <br>The plot below displays archived daily snow depth data for this site from xmACIS2.<br>");
+
+        var plotSeries = data2Series(sdata);
+        chart = new Highcharts.Chart({
+            chart: {
+                type: 'spline',
+                renderTo: chartDiv,
+                zoomType: 'x',
+            },
+            credits: {
+                enabled: false
+            },
+            title: {
+                text: sdata.meta.name+' Annual Snow Depth Plot',
+            },
+            xAxis: {
+                type: 'datetime',
+                dateTimeLabelFormats: { // don't display the dummy year
+                    month: '%e. %b',
+                    year: '%b'
+                },
+            },
+            yAxis: {
+                title: {
+                    text: 'Snow Depth (inches)'
+                },
+                min: 0,
+                getExtremesFromAll:true
+            },
+            legend: {
+                title: {
+                    text: '<span style="font-size: 12px; color: #666; font-weight: normal">Hover to Highlight Years</span>',
+                    style: {
+                        fontStyle: 'italic'
+                    }
+                },
+                singleSeriesEnabled: false,
+                useHTML: true,
+                itemDistance : 50,
+                align: 'right',
+                reversed: true,
+                verticalAlign: 'top',
+                padding: 20,
+                layout: 'vertical',
+                itemHoverStyle: {
+                    color: 'black'
+                }
+            },
+            tooltip: {
+                headerFormat: '<b>{series.name}</b><br>',
+                pointFormat: '{point.x:%e. %b}: {point.y:.0f} in',
+                positioner: function () {
+                    return { x: 80, y: 50 };
+                },
+            },
+            plotOptions:{
+                series:{
+                    states: {
+                        inactive: {
+                            opacity:1
+                        }
+                    },
+
+                    events: {
+                        mouseOver: function() {
+                            this.graph.attr('stroke', $('#setColor').css('backgroundColor'));
+                        },
+                        mouseOut: function() {
+                            console.log(this.userOptions);
+                            this.graph.attr('stroke', this.userOptions.origColor);
+                        }
+                    },
+                    stickyTracking : false,
+                    turboThreshold: 0,
+                    marker:{
+                        enabled: false
+                    },
+                    point: {
+                        events: {
+                            click: function(e) {
+                                    this.series.update({
+                                        color: $('#setColor').css('backgroundColor'),
+                                        origColor: $('#setColor').css('backgroundColor'),
+                                        showInLegend: true,
+                                        singleSeriesEnabled: true,
+                                    });
+                                    this.series.update({
+                                        zIndex : 1
+                                    });
+                                    this.redraw();
+                                    return;
+                             }
+                       }
+                   }
+                }
+            },
+
+            series: plotSeries
+        },
+        function(chart){
+            $(chart.series).each(function(i, serie){
+                $(serie.legendItem.element).hover(function(){
+                    console.log('hover');
+                    highlight(chart.series, serie.index, true);
+                }, function(){
+                    highlight(chart.series, serie.index, false);
+                });
+            });
+
+            function highlight(series, index, highlight) {
+                $(series).each(function (i, serie) {
+                    if(i == index) {
+                        serie.group.toFront();
+                        $.each(serie.data, function (k, data) {
+                            if(data.series) {
+                                if(highlight){
+                                    data.series.graph && data.series.graph.attr("stroke", 'blue');
+                                }
+                                else{
+                                    data.series.graph && data.series.graph.attr("stroke", data.series.userOptions.origColor);
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        });
+    };
+
+
+
+    </script>
+</div>
