@@ -41,7 +41,7 @@
 
             #map {
                 width : 700px;
-                height : 510px;
+                height : 530px;
                 position: relative;
                 float: left;
               }
@@ -65,6 +65,8 @@
                 font-weight: bold;
                 font-style: italic;
                 color: blue;
+                position: relative;
+                float: left;
             }
             #container {
                 width: 800px;
@@ -166,7 +168,8 @@
                 <label><input checked="checked" name="s" type="radio" value="c" />Current Snow Depth</label><br />
                 <label><input name="s" type="radio" value="1" />1 Day Change (24 hour)</label><br />
                 <label><input name="s" type="radio" value="3" />3 Day Change</label><br />
-                <label><input name="s" type="radio" value="7" />7 Day Change</label>
+                <label><input name="s" type="radio" value="7" />7 Day Change</label><br />
+                <label><input name="s" type="radio" value="historic" />Show sites with historic data</label>
                 <hr />
                 <label><input name="s" type="radio" value="sf" />Snow Fall</label>
                 <hr />
@@ -187,7 +190,7 @@
         </div>
 
         <div id="container">&nbsp;</div>
-        <div id="notes"></div>
+        <div id="notes">&nbsp;</div>
         <div id="container2"></div>
     </div>
     <script>
@@ -195,7 +198,7 @@
     var results = {};
     var data = {};
     var markerColor = "white";
-    var dataType, dataUnit, dataName;
+    var dataType, dataUnit, dataName,legend,otherLegend
 
     console.log(lookup);
 
@@ -280,10 +283,7 @@
             $("#title").html("<h2>Snow Depth - "+lastUpdate+"</h2>");
             var sd = response.data.sd;
             var sf = response.data.sf;
-            //console.log(response);
-            //build layer and add to map
             sfgeojsonLayer = L.geoJson(sf, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     data = feature.properties.data[feature.properties.data.length - 1][1];
                     var date = new Date(feature.properties.data[feature.properties.data.length - 1][0]);
@@ -308,7 +308,6 @@
 
             });//
             sfmarkerLayer = L.geoJson(sf, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     //console.log(feature);
                     name = feature.properties.name;
@@ -325,7 +324,6 @@
                 }
             });
             geojsonLayer = L.geoJson(sd, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     data = feature.properties.filteredData[feature.properties.filteredData.length - 1][1];
                     rawData = feature.properties.data[feature.properties.data.length - 1][1];
@@ -351,7 +349,6 @@
 		     // })
             }).addTo(map);//
             markerLayer = L.geoJson(sd, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     //console.log(feature);
                     name = feature.properties.name;
@@ -367,9 +364,8 @@
 
                     return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\" (Smoothed value)<br>"+rawData+"\" (Raw sensor value) <br>at "+moment(date).format("DD MMM YYYY HHmm"));
                 }
-            });//.addTo(map)
+            });
             markerLayer1 = L.geoJson(sd, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     crDate = new Date(feature.metadata.created);
                     targetDate = new Date(crDate.getTime());
@@ -407,9 +403,8 @@
                     geojsonMarkerOptions.fillColor = getDeltaColor(data);
                     return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
                 }
-            });//.addTo(map)
+            });
             geojsonLayer1 = L.geoJson(sd, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     //console.log(feature);
                     crDate = new Date(feature.metadata.created);
@@ -490,9 +485,8 @@
                     geojsonMarkerOptions.fillColor = getDeltaColor(data);
                     return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
                 }
-            });//.addTo(map)
+            });
             geojsonLayer3 = L.geoJson(sd, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     //console.log(feature);
                     crDate = new Date(feature.metadata.created);
@@ -531,9 +525,8 @@
                           icon: divIcon
                     }).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
                 }
-            });//.addTo(map)
+            });
             markerLayer7 = L.geoJson(sd, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     crDate = new Date(feature.metadata.created);
                     targetDate = new Date(crDate.getTime());
@@ -571,9 +564,8 @@
                     geojsonMarkerOptions.fillColor = getDeltaColor(data);
                     return L.circleMarker(latlng, geojsonMarkerOptions).bindTooltip(name+" ("+feature.properties.lid+")<br>"+data+"\"");
                 }
-            });//.addTo(map)
+            });
             geojsonLayer7 = L.geoJson(sd, {
-                //onEachFeature: onEachFeature,
                 pointToLayer: function (feature, latlng) {
                     //console.log(feature);
                     crDate = new Date(feature.metadata.created);
@@ -633,14 +625,14 @@
                     $("#nic_date").text(resp.date);
                 }
             });
-            var otherLegend = L.control({position: 'topright'});
+            otherLegend = L.control({position: 'topright'});
             otherLegend.onAdd = function (map) {
                 var div = L.DomUtil.create('div', 'legend');
                 div.innerHTML = '<b>Snow Depth Change</b><br><i style="background:#73dfff"></i>More Snow<br><i style="background:#aaff00"></i>Same or Less Snow<br>';
                 return div;
             };
 
-            var legend = L.control({position: 'topright'});
+            legend = L.control({position: 'topright'});
             legend.onAdd = function (map) {
                 var div = L.DomUtil.create('div', 'info legend'),
                     grades = [0, 4, 7, 13, 25, 37, 49, 60],
@@ -697,6 +689,14 @@
                 handleMapClick(d);
            });
            function tog() {
+                //remove all non-basemap layers
+                map.eachLayer(function (layer) {
+                    console.log(layer['options']['attribution']);
+                    if(layer['options']['attribution'] != 'Esri'){
+                        map.removeLayer(layer);
+                    }
+                });
+
                 if($('#sc').prop('checked')) {
                     map.addLayer(overlay);
                     $("#slider").show();
@@ -704,9 +704,9 @@
                     map.removeLayer(overlay);
                     $("#slider").hide();
                 }
-                //$("#container").empty();
                 var sel = $("input[name=s]:checked").val();
-                //console.log(sel);
+
+
                 if (sel == "c"){
                     $("#title").html('<h2>Snow Depth - '+lastUpdate+'</h2>');
                     if (typeof legend._map == "undefined" || legend._map === null ){
@@ -714,14 +714,7 @@
                         map.addControl(legend);
                     }
                     $(".legend b").html("Snow Depth");
-                    map.removeLayer(markerLayer1);
-                    map.removeLayer(markerLayer3);
-                    map.removeLayer(markerLayer7);
-                    map.removeLayer(sfmarkerLayer);
-                    map.removeLayer(geojsonLayer1);
-                    map.removeLayer(geojsonLayer3);
-                    map.removeLayer(geojsonLayer7);
-                    map.removeLayer(sfgeojsonLayer);
+
                     if($('#t').prop('checked')) {
                         map.addLayer(markerLayer);
                         map.removeLayer(geojsonLayer);
@@ -731,20 +724,11 @@
                     }
                 }else if(sel == 1){
                     $("#title").html('<h2>Snow Depth - 1 Day Change</h2>');
-                    console.log(legend._map);
-                    console.log(otherLegend._map);
                     if (typeof otherLegend._map == "undefined" || otherLegend._map === null){
                         map.removeControl(legend);
                         map.addControl(otherLegend);
                     }
-                    map.removeLayer(markerLayer);
-                    map.removeLayer(markerLayer3);
-                    map.removeLayer(markerLayer7);
-                    map.removeLayer(sfmarkerLayer);
-                    map.removeLayer(geojsonLayer);
-                    map.removeLayer(geojsonLayer3);
-                    map.removeLayer(geojsonLayer7);
-                    map.removeLayer(sfgeojsonLayer);
+
                     if($('#t').prop('checked')) {
                         map.addLayer(markerLayer1);
                         map.removeLayer(geojsonLayer1);
@@ -758,14 +742,7 @@
                         map.removeControl(legend);
                         map.addControl(otherLegend);
                     }
-                    map.removeLayer(markerLayer);
-                    map.removeLayer(markerLayer1);
-                    map.removeLayer(markerLayer7);
-                    map.removeLayer(sfmarkerLayer);
-                    map.removeLayer(geojsonLayer);
-                    map.removeLayer(geojsonLayer1);
-                    map.removeLayer(geojsonLayer7);
-                    map.removeLayer(sfgeojsonLayer);
+
                     if($('#t').prop('checked')) {
                         map.addLayer(markerLayer3);
                         map.removeLayer(geojsonLayer3);
@@ -779,14 +756,7 @@
                         map.removeControl(legend);
                         map.addControl(otherLegend);
                     }
-                    map.removeLayer(markerLayer);
-                    map.removeLayer(markerLayer1);
-                    map.removeLayer(markerLayer3);
-                    map.removeLayer(sfmarkerLayer);
-                    map.removeLayer(geojsonLayer);
-                    map.removeLayer(geojsonLayer1);
-                    map.removeLayer(geojsonLayer3);
-                    map.removeLayer(sfgeojsonLayer);
+
                     if($('#t').prop('checked')) {
                         map.addLayer(markerLayer7);
                         map.removeLayer(geojsonLayer7);
@@ -794,6 +764,9 @@
                         map.addLayer(geojsonLayer7);
                         map.removeLayer(markerLayer7);
                     }
+                }else if(sel == "historic"){
+                    addHistoricSites(map);
+
                 }else if(sel == "sf"){
                     $("#title").html('<h2>Snow Fall</h2>');
                     if (typeof legend._map == "undefined" || legend._map === null){
@@ -802,14 +775,7 @@
                     }
                     console.log($(".legend b"));
                     $(".legend b").html("Snow Fall");
-                    map.removeLayer(markerLayer);
-                    map.removeLayer(markerLayer1);
-                    map.removeLayer(markerLayer3);
-                    map.removeLayer(markerLayer7);
-                    map.removeLayer(geojsonLayer);
-                    map.removeLayer(geojsonLayer1);
-                    map.removeLayer(geojsonLayer3);
-                    map.removeLayer(geojsonLayer7);
+
                     if($('#t').prop('checked')) {
                         map.addLayer(sfmarkerLayer);
                         map.removeLayer(sfgeojsonLayer);
@@ -825,6 +791,72 @@
 
         }
     });
+
+    function addHistoricSites(map){
+        $("#container").hide();
+        map.removeControl(otherLegend);
+        map.removeControl(legend);
+        var url = "http://data.rcc-acis.org/StnMeta",
+        params = {
+            bbox: "-130,50,-180,75",
+            meta: "name,sids,ll,valid_daterange",
+            elems: "snwd",
+            sdate: "2017-1-1",
+            edate: "2100-1-1"
+        };
+        var geoJson = {
+            "type": "FeatureCollection",
+            "features": []
+        }
+        $.ajax({
+            type: "POST",
+            async: true,
+            url: url,
+            data: params,
+            success : function (response){
+                $.each(response.meta, function(i, site) {
+                    var feat = {
+                        type: "Feature",
+                        geometry:{
+                            type: "Point",
+                            coordinates: site['ll']
+                        },
+                        properties: {
+                            startDate: site['valid_daterange'][0][0],
+                            endDate : site['valid_daterange'][0][1],
+                            sids: site['sids'][0],
+                            name: site['name']
+                        }
+                    }
+                geoJson['features'].push(feat);
+                });
+                console.log(geoJson);
+                var geojsonMarkerOptions = {
+                    radius: 4,
+                    fillColor: "#ff7800",
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                };
+
+                L.geoJSON(geoJson,{
+                    pointToLayer: function (feature,
+                        latlng) {
+                             return L.circleMarker(latlng,geojsonMarkerOptions).bindTooltip(feature.properties.name+"<br>start:"+feature.properties.startDate+"<br>end:"+feature.properties.endDate);
+                        }
+                }).on('click', function (d) {
+                    console.log(d);
+                    plotXmacis(d.layer.feature.properties.sids,'container2','notes');
+                    $("#notes").html("The plot below displays archived daily snow depth data for this site from xmACIS2.");
+                }).addTo(map);
+                console.log("Adding Note");
+
+            }
+        })
+
+    }
+
 
 
     function plotIt(d, f, m, l) {
@@ -905,7 +937,11 @@
         });
     };
 
+    function removeMapLayers(){
+    }
+
     function handleMapClick(d){
+        $("#container").show();
         plotXmacis(lookup[d.layer.feature.properties.lid],'container2','notes');
 
         $('html,body').animate({scrollTop:400});
@@ -994,7 +1030,7 @@
           type: "POST",
           async: false,
           url: url,
-          data: {"params": '{"elems":[{"name":"snwd"}],"sid":"'+station+'","sDate":"'+startDate+'","eDate":"'+nextYear+'-01-01"}',"output":'json'},
+          data: {"params": '{"elems":[{"name":"snwd"}],"sid":"'+station+'","sDate":"'+startDate+'","eDate":"'+endDate+'"}',"output":'json'},
             success: function (response) {
                 snowData = response;
             },
