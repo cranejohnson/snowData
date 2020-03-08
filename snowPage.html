@@ -200,7 +200,6 @@
     var markerColor = "white";
     var dataType, dataUnit, dataName,legend,otherLegend
 
-    console.log(lookup);
 
     $("#progressBar").progressbar({
         value: false
@@ -309,7 +308,6 @@
             });//
             sfmarkerLayer = L.geoJson(sf, {
                 pointToLayer: function (feature, latlng) {
-                    //console.log(feature);
                     name = feature.properties.name;
                     data = feature.properties.data[feature.properties.data.length - 1][1];
                     var date = new Date(feature.properties.data[feature.properties.data.length - 1][0]);
@@ -350,7 +348,6 @@
             }).addTo(map);//
             markerLayer = L.geoJson(sd, {
                 pointToLayer: function (feature, latlng) {
-                    //console.log(feature);
                     name = feature.properties.name;
                     data = feature.properties.filteredData[feature.properties.filteredData.length - 1][1];
                     rawData = feature.properties.data[feature.properties.data.length - 1][1];
@@ -406,7 +403,6 @@
             });
             geojsonLayer1 = L.geoJson(sd, {
                 pointToLayer: function (feature, latlng) {
-                    //console.log(feature);
                     crDate = new Date(feature.metadata.created);
                     targetDate = new Date(crDate.getTime());
                     targetDate.setDate(crDate.getDate() - 1);
@@ -488,7 +484,6 @@
             });
             geojsonLayer3 = L.geoJson(sd, {
                 pointToLayer: function (feature, latlng) {
-                    //console.log(feature);
                     crDate = new Date(feature.metadata.created);
                     targetDate = new Date(crDate.getTime());
                     targetDate.setDate(crDate.getDate() - 3);
@@ -567,7 +562,6 @@
             });
             geojsonLayer7 = L.geoJson(sd, {
                 pointToLayer: function (feature, latlng) {
-                    //console.log(feature);
                     crDate = new Date(feature.metadata.created);
                     targetDate = new Date(crDate.getTime());
                     targetDate.setDate(crDate.getDate() - 7);
@@ -586,8 +580,6 @@
                             tmpDate = tempDate.yyyymmddhh();
                             //Find ob +/- 3 hours from target relative to last ob
                             if (parseInt(tmpDate) >= parseInt(tgtDtg)-3 && parseInt(tmpDate) <= parseInt(tgtDtg)+3){
-                                //console.log("7 day delta");
-                                //console.log(feature.properties.data[x][1]);
                                 data = (feature.properties.filteredData[feature.properties.filteredData.length - 1][1] - feature.properties.filteredData[x][1]).toFixed(1);
                                 break;
                             }else {data = null;}
@@ -691,7 +683,6 @@
            function tog() {
                 //remove all non-basemap layers
                 map.eachLayer(function (layer) {
-                    console.log(layer['options']['attribution']);
                     if(layer['options']['attribution'] != 'Esri'){
                         map.removeLayer(layer);
                     }
@@ -773,7 +764,6 @@
                         map.removeControl(otherLegend);
                         map.addControl(legend);
                     }
-                    console.log($(".legend b"));
                     $(".legend b").html("Snow Fall");
 
                     if($('#t').prop('checked')) {
@@ -830,7 +820,6 @@
                     }
                 geoJson['features'].push(feat);
                 });
-                console.log(geoJson);
                 var geojsonMarkerOptions = {
                     radius: 4,
                     fillColor: "#ff7800",
@@ -846,11 +835,9 @@
                              return L.circleMarker(latlng,geojsonMarkerOptions).bindTooltip(feature.properties.name+"<br>start:"+feature.properties.startDate+"<br>end:"+feature.properties.endDate);
                         }
                 }).on('click', function (d) {
-                    console.log(d);
                     plotXmacis(d.layer.feature.properties.sids,'container2','notes');
                     $("#notes").html("The plot below displays archived daily snow depth data for this site from xmACIS2.");
                 }).addTo(map);
-                console.log("Adding Note");
 
             }
         })
@@ -860,7 +847,6 @@
 
 
     function plotIt(d, f, m, l) {
-        //console.log(d);
         var monthNames = [
             "Jan", "Feb", "Mar",
             "Apr", "May", "Jun", "Jul",
@@ -969,7 +955,6 @@
 
     //web services success callback
     function postSuccess(results) {
-        console.log(results);
         //This will store the html string that will be inserted into
         //the table id JSONACIS
         var tableString = '<tr><th>Name</th><th>Station Start</th><th>Station End</th></tr>';
@@ -1020,10 +1005,8 @@
 
 
         })
-        console.log(metaInfo);
         var startDate = metaInfo.meta[0].valid_daterange[0][0];
         var endDate = metaInfo.meta[0].valid_daterange[0][1];
-        console.log(startDate);
 
         url = "https://data.rcc-acis.org/StnData";
         $.ajax({
@@ -1068,15 +1051,19 @@
         for ( var i = 0; i < 366; i++ ) {
             median[i] = [];
         }
+
+        var series = {};
         $.each( acisData.data, function( index,array ) {
-            if(moment(array[0]).add(4, 'months').year() > currentYear){
+
+            var is_last_item = (index == (acisData.data.length - 1));
+            if((moment(array[0]).add(4, 'months').year() > currentYear)| is_last_item){
                 var lineColor = 'rgba(200,200,200,0.3)';
                 var zVal = 1;
                 if(currentYear == thisYear){
                     lineColor = 'red';
                     zVal      = 3;
                 }
-                var series = {
+                series = {
                     'name' : String(currentYear-1)+'-'+String(currentYear),
                     'data' : data,
                     'id'   : currentYear,
@@ -1088,12 +1075,13 @@
                     'max'  : peaks[currentYear],
                     }
                 if(peaks[currentYear] == 0 ) peaks[currentYear] =1;
-                if(data.length > 0) allSeries.push(series);
+                if(data.length > 0){
+                    if(!is_last_item) allSeries.push(series);
+                }
                 data = [];
                 currentYear = moment(array[0]).add(4, 'months').year();
              }
             var val;
-            //if(array[1] == 'M') val = null;
 
             if($.isNumeric(array[1])){
                 val =  parseInt(array[1])
@@ -1132,12 +1120,16 @@
                 peaks[currentYear] = val
             }
 
+            if(is_last_item){
+                if(data.length > 0){
+                    allSeries.push(series);
+                }
+            }
+
         });
-        console.log(data);
         data = [];
         median.pop();
         $.each(median,function(index,array){
-            //console.log(index);
             var year = '2000';
             if(moment("2000-09-01").add(index,'days').month()<8){
                 year = '2001';
@@ -1185,14 +1177,12 @@
 
     function plotXmacis(site,chartDiv,notesDiv) {
         if (typeof site == 'undefined'){
-            console.log('Not an xmAcis Site');
             $("#"+notesDiv).html("<hr><br><br>No available snow depth archive data available for this site.");
             $("#"+chartDiv).html("");
             return;
         }
         var chart;
         var sdata = getSnowData(site);
-        console.log(sdata);
 
         $("#"+notesDiv).html("The plot above displays 30 days of near real time snow depth data. <br>The plot below displays archived daily snow depth data for this site from xmACIS2.<br>");
 
@@ -1262,7 +1252,6 @@
                             this.graph.attr('stroke', $('#setColor').css('backgroundColor'));
                         },
                         mouseOut: function() {
-                            console.log(this.userOptions);
                             this.graph.attr('stroke', this.userOptions.origColor);
                         }
                     },
@@ -1296,7 +1285,6 @@
         function(chart){
             $(chart.series).each(function(i, serie){
                 $(serie.legendItem.element).hover(function(){
-                    console.log('hover');
                     highlight(chart.series, serie.index, true);
                 }, function(){
                     highlight(chart.series, serie.index, false);
