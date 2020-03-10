@@ -1053,6 +1053,7 @@
         }
 
         var series = {};
+        var i = 0;
         $.each( acisData.data, function( index,array ) {
 
             var is_last_item = (index == (acisData.data.length - 1));
@@ -1093,8 +1094,14 @@
                     missing = 0;
                 }
                 else{
-                  val = null;
-                  missing = missing + 1;
+                  if($.isNumeric(acisData.data[i-1][1]) && $.isNumeric(acisData.data[i+1][1])){
+                        console.log('averaging');
+                        val = parseInt((parseInt(acisData.data[i-1][1])+parseInt(acisData.data[i+1][1]))/2)
+                    }else{
+                      val = null;
+                      missing = missing + 1;
+                    }
+
                 }
              }
             if(moment().diff(array[0]) < 0){
@@ -1125,7 +1132,7 @@
                     allSeries.push(series);
                 }
             }
-
+            i = i + 1;
         });
         data = [];
         median.pop();
@@ -1144,7 +1151,7 @@
             'type' : 'line',
             'color': 'black',
             'zIndex': 2,
-            'origColor' : 'black'
+            'origColor' : 'black',
         }
         allSeries.push(series);
         for (var key in peaks) {
@@ -1173,7 +1180,21 @@
     }
 
 
-
+    function movingAverage(series,period) {
+        var smoothData = [];
+        var sumForAverage = 0;
+        var i;
+        for(i=0;i<series.data.length;i++) {
+            sumForAverage += series.data[i].y;
+            if(i<period) {
+                smoothData.push(null);
+            } else {
+                sumForAverage -= series.data[i-period].y;
+                smoothData.push([series.data[i].x, sumForAverage/period]);
+            }
+        }
+        series.data = smoothData;
+    }
 
     function plotXmacis(site,chartDiv,notesDiv) {
         if (typeof site == 'undefined'){
