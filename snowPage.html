@@ -269,7 +269,8 @@
 
     $.ajax({
         type: "POST",
-        url: "/source/aprfc/snow.json",
+        url: "https://www.weather.gov/source/aprfc/snow.json",
+        //url: "snow.json",
         dataType: 'json',
         success: function (response) {
             $("#progress").hide();
@@ -784,7 +785,7 @@
         $("#container").hide();
         map.removeControl(otherLegend);
         map.removeControl(legend);
-        var url = "http://data.rcc-acis.org/StnMeta",
+        var url = "https://data.rcc-acis.org/StnMeta",
         params = {
             bbox: "-130,50,-180,75",
             meta: "name,sids,ll,valid_daterange",
@@ -983,7 +984,7 @@
     function getSnowData(station){
         var nextYear = moment().add(4,'months').year()+1;
 
-        var url = "http://data.rcc-acis.org/StnMeta",
+        var url = "https://data.rcc-acis.org/StnMeta",
         params = {
                 meta: "name,sids,ll,valid_daterange",
                 elems: "snwd",
