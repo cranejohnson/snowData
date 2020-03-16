@@ -1,4 +1,4 @@
-    <script type="text/javascript" src="https://www.weather.gov/js/jquery-1.10.2.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin="anonymous"></script>
     <meta content="text/html; charset=utf-8" https-equiv="content-type" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.1/leaflet.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.0.1/leaflet.js"></script>
@@ -11,7 +11,9 @@
     <script src="https://www.weather.gov/source/aprfc/js/moment.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.js"></script>
 
-    <script src="https://www.weather.gov/source/aprfc/js/nwsLID2xmAcis_lookupJson.js"></script>
+    <script src="nwsLID2xmAcis_lookupJson.js"></script>
+    <!-- <script src ="https://www.weather.gov/source/aprfc/js/nwsLID2xmAcis_lookupJson.js"></script> -->
+
 
     <style type="text/css">#title {
                 margin: 0 auto;
@@ -269,8 +271,8 @@
 
     $.ajax({
         type: "POST",
-        url: "https://www.weather.gov/source/aprfc/snow.json",
-        //url: "snow.json",
+        //url: "https://www.weather.gov/source/aprfc/snow.json",
+        url: "snow.json",
         dataType: 'json',
         success: function (response) {
             $("#progress").hide();
@@ -926,8 +928,6 @@
     }
 
     function handleMapClick(d){
-        $("#container").show();
-        plotXmacis(lookup[d.layer.feature.properties.lid],'container2','notes');
 
         $('html,body').animate({scrollTop:400});
         dataName = d.layer.feature.properties.dataname;
@@ -936,7 +936,10 @@
         filteredData = d.layer.feature.properties.filteredData;
         yMax = d.layer.feature.properties.maxFilteredDatum;
         plotIt(data, filteredData, yMax, name);
-    }
+
+        $("#container").show();
+        plotXmacis(lookup[d.layer.feature.properties.lid],'container2','notes');
+  }
 
     //////////////////////////////
     var snowData = {};
@@ -981,48 +984,7 @@
         return keys.sort(function(a,b){return obj[b]-obj[a]});
     }
 
-    function getSnowData(station){
-        var nextYear = moment().add(4,'months').year()+1;
 
-        var url = "https://data.rcc-acis.org/StnMeta",
-        params = {
-                meta: "name,sids,ll,valid_daterange",
-                elems: "snwd",
-                sdate: "2017-1-1",
-                edate: "2100-1-1",
-                sids: station
-            };
-        var metaInfo;
-        $.ajax({
-          type: "POST",
-          async: false,
-          url: url,
-          data: params,
-          success : function (response){
-            metaInfo = response;
-          }
-
-
-        })
-        var startDate = metaInfo.meta[0].valid_daterange[0][0];
-        var endDate = metaInfo.meta[0].valid_daterange[0][1];
-
-        url = "https://data.rcc-acis.org/StnData";
-        $.ajax({
-          type: "POST",
-          async: false,
-          url: url,
-          data: {"params": '{"elems":[{"name":"snwd"}],"sid":"'+station+'","sDate":"'+startDate+'","eDate":"'+endDate+'"}',"output":'json'},
-            success: function (response) {
-                snowData = response;
-            },
-            error: function () {
-                alert("error");
-            }
-        });
-        return snowData;
-
-    }
 
     function getMedian(values) {
         values.sort( function(a,b) {return a - b;} );
@@ -1196,139 +1158,183 @@
     }
 
     function plotXmacis(site,chartDiv,notesDiv) {
+        $("#"+notesDiv).html("<hr><br><br>LOADING ARCHIVE DATA");
+        $("#"+chartDiv).html("<div style='text-align: center'><img src='https://www.w3schools.com/jquery/demo_wait.gif' width='200' height='200' /></div>");
         if (typeof site == 'undefined'){
             $("#"+notesDiv).html("<hr><br><br>No available snow depth archive data available for this site.");
             $("#"+chartDiv).html("");
             return;
         }
         var chart;
-        var sdata = getSnowData(site);
 
-        $("#"+notesDiv).html("The plot above displays 30 days of near real time snow depth data. <br>The plot below displays archived daily snow depth data for this site from xmACIS2.<br>");
+        var nextYear = moment().add(4,'months').year()+1;
 
-        var plotSeries = data2Series(sdata);
-        chart = new Highcharts.Chart({
-            chart: {
-                type: 'spline',
-                renderTo: chartDiv,
-                zoomType: 'x',
-            },
-            credits: {
-                enabled: false
-            },
-            title: {
-                text: sdata.meta.name+' Annual Snow Depth Plot',
-            },
-            xAxis: {
-                type: 'datetime',
-                dateTimeLabelFormats: { // don't display the dummy year
-                    month: '%e. %b',
-                    year: '%b'
-                },
-            },
-            yAxis: {
-                title: {
-                    text: 'Snow Depth (inches)'
-                },
-                min: 0,
-                getExtremesFromAll:true
-            },
-            legend: {
-                title: {
-                    text: '<span style="font-size: 12px; color: #666; font-weight: normal">Hover to Highlight Years</span>',
-                    style: {
-                        fontStyle: 'italic'
-                    }
-                },
-                singleSeriesEnabled: false,
-                useHTML: true,
-                itemDistance : 50,
-                align: 'right',
-                reversed: true,
-                verticalAlign: 'top',
-                padding: 20,
-                layout: 'vertical',
-                itemHoverStyle: {
-                    color: 'black'
-                }
-            },
-            tooltip: {
-                headerFormat: '<b>{series.name}</b><br>',
-                pointFormat: '{point.x:%e. %b}: {point.y:.0f} in',
-                positioner: function () {
-                    return { x: 80, y: 50 };
-                },
-            },
-            plotOptions:{
-                series:{
-                    states: {
-                        inactive: {
-                            opacity:1
-                        }
-                    },
+        var url = "https://data.rcc-acis.org/StnMeta",
+        params = {
+                meta: "name,sids,ll,valid_daterange",
+                elems: "snwd",
+                sdate: "2017-1-1",
+                edate: "2100-1-1",
+                sids: site
+            };
+        var metaInfo;
+        $.ajax({
+          type: "POST",
+          async: true,
+          url: url,
+          data: params,
+          success : function (response){
+            metaInfo = response;
 
-                    events: {
-                        mouseOver: function() {
-                            this.graph.attr('stroke', $('#setColor').css('backgroundColor'));
+            var startDate = metaInfo.meta[0].valid_daterange[0][0];
+            var endDate = metaInfo.meta[0].valid_daterange[0][1];
+
+            url = "https://data.rcc-acis.org/StnData";
+            $.ajax({
+              type: "POST",
+              async: true,
+              url: url,
+              data: {"params": '{"elems":[{"name":"snwd"}],"sid":"'+site+'","sDate":"'+startDate+'","eDate":"'+endDate+'"}',"output":'json'},
+                success: function (response) {
+                    sdata = response;
+                    $("#"+notesDiv).html("The plot above displays 30 days of near real time snow depth data. <br>The plot below displays archived daily snow depth data for this site from xmACIS2.<br>");
+
+                    var plotSeries = data2Series(sdata);
+                    chart = new Highcharts.Chart({
+                        chart: {
+                            type: 'spline',
+                            renderTo: chartDiv,
+                            zoomType: 'x',
                         },
-                        mouseOut: function() {
-                            this.graph.attr('stroke', this.userOptions.origColor);
-                        }
-                    },
-                    stickyTracking : false,
-                    turboThreshold: 0,
-                    marker:{
-                        enabled: false
-                    },
-                    point: {
-                        events: {
-                            click: function(e) {
-                                    this.series.update({
-                                        color: $('#setColor').css('backgroundColor'),
-                                        origColor: $('#setColor').css('backgroundColor'),
-                                        showInLegend: true,
-                                        singleSeriesEnabled: true,
-                                    });
-                                    this.series.update({
-                                        zIndex : 1
-                                    });
-                                    this.redraw();
-                                    return;
-                             }
-                       }
-                   }
-                }
-            },
-
-            series: plotSeries
-        },
-        function(chart){
-            $(chart.series).each(function(i, serie){
-                $(serie.legendItem.element).hover(function(){
-                    highlight(chart.series, serie.index, true);
-                }, function(){
-                    highlight(chart.series, serie.index, false);
-                });
-            });
-
-            function highlight(series, index, highlight) {
-                $(series).each(function (i, serie) {
-                    if(i == index) {
-                        serie.group.toFront();
-                        $.each(serie.data, function (k, data) {
-                            if(data.series) {
-                                if(highlight){
-                                    data.series.graph && data.series.graph.attr("stroke", 'blue');
+                        credits: {
+                            enabled: false
+                        },
+                        title: {
+                            text: sdata.meta.name+' Annual Snow Depth Plot',
+                        },
+                        xAxis: {
+                            type: 'datetime',
+                            dateTimeLabelFormats: { // don't display the dummy year
+                                month: '%e. %b',
+                                year: '%b'
+                            },
+                        },
+                        yAxis: {
+                            title: {
+                                text: 'Snow Depth (inches)'
+                            },
+                            min: 0,
+                            getExtremesFromAll:true
+                        },
+                        legend: {
+                            title: {
+                                text: '<span style="font-size: 12px; color: #666; font-weight: normal">Hover to Highlight Years</span>',
+                                style: {
+                                    fontStyle: 'italic'
                                 }
-                                else{
-                                    data.series.graph && data.series.graph.attr("stroke", data.series.userOptions.origColor);
-                                }
+                            },
+                            singleSeriesEnabled: false,
+                            useHTML: true,
+                            itemDistance : 50,
+                            align: 'right',
+                            reversed: true,
+                            verticalAlign: 'top',
+                            padding: 20,
+                            layout: 'vertical',
+                            itemHoverStyle: {
+                                color: 'black'
                             }
+                        },
+                        tooltip: {
+                            headerFormat: '<b>{series.name}</b><br>',
+                            pointFormat: '{point.x:%e. %b}: {point.y:.0f} in',
+                            positioner: function () {
+                                return { x: 80, y: 50 };
+                            },
+                        },
+                        plotOptions:{
+                            series:{
+                                states: {
+                                    inactive: {
+                                        opacity:1
+                                    }
+                                },
+
+                                events: {
+                                    mouseOver: function() {
+                                        this.graph.attr('stroke', $('#setColor').css('backgroundColor'));
+                                    },
+                                    mouseOut: function() {
+                                        this.graph.attr('stroke', this.userOptions.origColor);
+                                    }
+                                },
+                                stickyTracking : false,
+                                turboThreshold: 0,
+                                marker:{
+                                    enabled: false
+                                },
+                                point: {
+                                    events: {
+                                        click: function(e) {
+                                                this.series.update({
+                                                    color: $('#setColor').css('backgroundColor'),
+                                                    origColor: $('#setColor').css('backgroundColor'),
+                                                    showInLegend: true,
+                                                    singleSeriesEnabled: true,
+                                                });
+                                                this.series.update({
+                                                    zIndex : 1
+                                                });
+                                                this.redraw();
+                                                return;
+                                         }
+                                   }
+                               }
+                            }
+                        },
+
+                        series: plotSeries
+                    },
+                    function(chart){
+                        $(chart.series).each(function(i, serie){
+                            $(serie.legendItem.element).hover(function(){
+                                highlight(chart.series, serie.index, true);
+                            }, function(){
+                                highlight(chart.series, serie.index, false);
+                            });
                         });
-                    }
-                });
-            }
-        });
+
+                        function highlight(series, index, highlight) {
+                            $(series).each(function (i, serie) {
+                                if(i == index) {
+                                    serie.group.toFront();
+                                    $.each(serie.data, function (k, data) {
+                                        if(data.series) {
+                                            if(highlight){
+                                                data.series.graph && data.series.graph.attr("stroke", 'blue');
+                                            }
+                                            else{
+                                                data.series.graph && data.series.graph.attr("stroke", data.series.userOptions.origColor);
+                                            }
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    });
+
+
+
+                },
+                error: function () {
+                    alert("error");
+                }
+            });
+         }
+
+
+        })
+
     };
 
 
