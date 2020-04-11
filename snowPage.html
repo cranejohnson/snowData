@@ -1003,6 +1003,7 @@
         var thisYear = moment().add(4,'months').year();
         var data = [];
         var median = [];
+        var seriesIds = [];
         var peaks = {};
         var missingOk = 5;
         var missing = 0;
@@ -1015,13 +1016,48 @@
 
         var series = {};
         var i = 0;
-        $.each( acisData.data, function( index,array ) {
+        var missingTotal = 0;
+        var hideSeries = {
+            'name' : 'Hide Historic',
+            'data' : null,
+            'type' : 'line',
+            'order': 0,
+            'color': 'white',
+            'events': {
+                'hide': function () {
+                    console.log(this);
+                    var chart = this.chart;
+                    $(chart.series).each(function(){
+                        //this.hide();
+                        if(this.userOptions.historic){
+                            this.setVisible(false, false);
+                        }
+                    });
+                },
+                'show': function () {
+                    console.log(this);
+                    var chart = this.chart;
+                    $(chart.series).each(function(){
+                        //this.hide();
+                        if(this.userOptions.historic){
+                            this.setVisible(true, true);
+                        }
+                    });
+                }
+            }
 
+        }
+
+        console.log(allSeries)
+        $.each( acisData.data, function( index,array ) {
             var is_last_item = (index == (acisData.data.length - 1));
             if((moment(array[0]).add(4, 'months').year() > currentYear)| is_last_item){
                 var lineColor = 'rgba(200,200,200,0.3)';
+                var isHistoric = true;
                 var zVal = 1;
+                var missing = 0;
                 if(currentYear == thisYear){
+                    isHistoric = false;
                     lineColor = 'red';
                     zVal      = 3;
                 }
@@ -1030,6 +1066,7 @@
                     'data' : data,
                     'id'   : currentYear,
                     'type' : 'line',
+                    'historic' : isHistoric,
                     'order': 0,
                     'zIndex'    : zVal,
                     'color': lineColor,
@@ -1037,11 +1074,14 @@
                     'max'  : peaks[currentYear],
                     }
                 if(peaks[currentYear] == 0 ) peaks[currentYear] =1;
-                if(data.length > 0){
-                    if(!is_last_item) allSeries.push(series);
+                if(missingTotal < 350){
+                    if(!is_last_item){
+                        allSeries.push(series);
+                        }
                 }
                 data = [];
                 currentYear = moment(array[0]).add(4, 'months').year();
+                missingTotal = 0;
              }
             var val;
 
@@ -1056,11 +1096,11 @@
                 }
                 else{
                   if($.isNumeric(acisData.data[i-1][1]) && $.isNumeric(acisData.data[i+1][1])){
-                        console.log('averaging');
                         val = parseInt((parseInt(acisData.data[i-1][1])+parseInt(acisData.data[i+1][1]))/2)
                     }else{
                       val = null;
                       missing = missing + 1;
+                      missingTotal = missingTotal+1;
                     }
 
                 }
@@ -1090,11 +1130,13 @@
 
             if(is_last_item){
                 if(data.length > 0){
+                    allSeries.push(hideSeries);
                     allSeries.push(series);
                 }
             }
             i = i + 1;
         });
+
         data = [];
         median.pop();
         $.each(median,function(index,array){
@@ -1211,6 +1253,9 @@
                         },
                         title: {
                             text: sdata.meta.name+' Annual Snow Depth Plot',
+                        },
+                        subtitle : {
+                            text: "Period of Record - " + metaInfo.meta[0].valid_daterange[0][0] +" to "+ metaInfo.meta[0].valid_daterange[0][1],
                         },
                         xAxis: {
                             type: 'datetime',
