@@ -1254,6 +1254,9 @@
                         title: {
                             text: sdata.meta.name+' Annual Snow Depth Plot',
                         },
+                        subtitle : {
+                            text: "Period of Record - " + metaInfo.meta[0].valid_daterange[0][0] +" to "+ metaInfo.meta[0].valid_daterange[0][1],
+                        },
                         xAxis: {
                             type: 'datetime',
                             dateTimeLabelFormats: { // don't display the dummy year
