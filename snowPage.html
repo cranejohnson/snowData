@@ -938,7 +938,7 @@
         plotIt(data, filteredData, yMax, name);
 
         $("#container").show();
-        plotXmacis(lookup[d.layer.feature.properties.lid],'container2','notes');
+        plotXmacis(lookup[d.layer.feature.properties.lid],'container2','notes',filteredData);
   }
 
     //////////////////////////////
@@ -1059,7 +1059,7 @@
                 if(currentYear == thisYear){
                     isHistoric = false;
                     lineColor = 'red';
-                    zVal      = 3;
+                    zVal      = 4;
                 }
                 series = {
                     'name' : String(currentYear-1)+'-'+String(currentYear),
@@ -1199,7 +1199,7 @@
         series.data = smoothData;
     }
 
-    function plotXmacis(site,chartDiv,notesDiv) {
+    function plotXmacis(site,chartDiv,notesDiv,nwsData = null) {
         $("#"+notesDiv).html("<hr><br><br>LOADING ARCHIVE DATA");
         $("#"+chartDiv).html("<div style='text-align: center'><img src='https://www.w3schools.com/jquery/demo_wait.gif' width='200' height='200' /></div>");
         if (typeof site == 'undefined'){
@@ -1341,19 +1341,19 @@
                         series: plotSeries
                     },
                     function(chart){
-                        $(chart.series).each(function(i, serie){
-                            $(serie.legendItem.element).hover(function(){
-                                highlight(chart.series, serie.index, true);
+                        $(chart.series).each(function(i, series){
+                            $(series.legendItem.element).hover(function(){
+                                highlight(chart.series, series.index, true);
                             }, function(){
-                                highlight(chart.series, serie.index, false);
+                                highlight(chart.series, series.index, false);
                             });
                         });
 
                         function highlight(series, index, highlight) {
-                            $(series).each(function (i, serie) {
+                            $(series).each(function (i, series) {
                                 if(i == index) {
-                                    serie.group.toFront();
-                                    $.each(serie.data, function (k, data) {
+                                    series.group.toFront();
+                                    $.each(series.data, function (k, data) {
                                         if(data.series) {
                                             if(highlight){
                                                 data.series.graph && data.series.graph.attr("stroke", 'blue');
@@ -1367,8 +1367,22 @@
                             });
                         }
                     });
-
-
+                console.log(nwsData);
+                $.each(nwsData, function(index,data){
+                	console.log(data[0]);
+                	if(moment(data[0]).month()< 8){
+                	   data[0] = parseInt(moment(data[0]).set("year",2001).format("x"));
+                	}
+                	console.log(data[0]);
+                });
+                chart.addSeries({                        
+    				name: "RealTime Data - 30 days",
+    				data: nwsData,
+    				zIndex: 3,
+    				color: 'red',
+    				origColor: 'red'
+				});
+                console.log(nwsData);
 
                 },
                 error: function () {
