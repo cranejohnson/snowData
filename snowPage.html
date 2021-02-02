@@ -13,7 +13,7 @@
 
     <script src ="https://www.weather.gov/source/aprfc/js/nwsLID2xmAcis_lookupJson.js"></script>
 
-
+ 
     <style type="text/css">#title {
                 margin: 0 auto;
             }
@@ -270,8 +270,8 @@
 
     $.ajax({
         type: "POST",
-        url: "https://www.weather.gov/source/aprfc/snow.json",
-        //url: "snow.json",
+        //url: "https://www.weather.gov/source/aprfc/snow.json",
+        url: "snow.json",
         dataType: 'json',
         success: function (response) {
             $("#progress").hide();
@@ -1366,14 +1366,17 @@
                             });
                         }
                     });
-                console.log(nwsData);
                 $.each(nwsData, function(index,data){
                 	console.log(data[0]);
                 	if(moment(data[0]).month()< 8){
                 	   data[0] = parseInt(moment(data[0]).set("year",2001).format("x"));
                 	}
-                	console.log(data[0]);
+                	else{
+                	   data[0] = parseInt(moment(data[0]).set("year",2000).format("x"));
+                	
+                	}
                 });
+ 
                 chart.addSeries({                        
     				name: "RealTime Data - 30 days",
     				data: nwsData,
